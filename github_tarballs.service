@@ -1,8 +1,8 @@
-<service name="git_tarballs">
+<service name="github_tarballs">
   <summary>Download tarballs and update package data</summary>
   <description>This service downloads tarballs and updates the spec file version and changes file</description>
   <param name="url">
-    <description>URL of the tarball to download. It should contain a ChangeLog file in git log format.</description>
+    <description>URL of the tarball to download.</description>
     <required/>
   </param>
   <param name="package">
@@ -13,6 +13,18 @@
   </param>
   <param name="email">
     <description>User's email that will be used to sign the rpm's .changes file</description>
+    <required/>
+  </param>
+  <param name="repo_owner">
+    <description>GitHub repository owner</description>
+    <required/>
+  </param>
+  <param name="repo_name">
+    <description>GitHub repository name</description>
+    <required/>
+  </param>
+  <param name="target">
+    <description>A commit or git reference that will be the target to sync up to from the upstream repository</description>
     <required/>
   </param>
 </service>

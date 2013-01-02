@@ -17,6 +17,7 @@
 import argparse
 from datetime import datetime
 import glob
+import json
 import os
 import re
 import sys
@@ -25,6 +26,7 @@ import urllib
 
 
 COMMIT_HASH_SIZE = 7
+GITHUB_COMPARE = "https://api.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
 
 
 def download_tarball(url, filename):
@@ -40,20 +42,6 @@ def download_tarball(url, filename):
         sys.exit(e)
 
 
-def get_changelog_from_tarball(tar_name):
-    try:
-        tar = tarfile.open(tar_name)
-        changelog_file = next(f for f in tar.getnames()
-                              if f.endswith('ChangeLog'))
-        t = tar.getmember(changelog_file)
-        changelog = tar.extractfile(t).read()
-    except StopIteration:
-        sys.exit("Could not find a 'ChangeLog' file. ")
-    finally:
-        tar.close()
-    return changelog
-
-
 def get_parent_dir_and_version_from_tarball(tar_name):
     try:
         tar = tarfile.open(tar_name)
@@ -66,49 +54,36 @@ def get_parent_dir_and_version_from_tarball(tar_name):
     finally:
         tar.close()
 
-def get_upstream_commit(changelog):
-    try:
-        return re.search(r'^commit (.*?)$', changelog, re.MULTILINE).group(1)
-    except AttributeError:
-        sys.exit("Could not parse ChangeLog file.")
-
-
-def parse_changelog(changelog):
-    """Parse a git ChangeLog file returning an iterable of dicts
-
-    :changelog: string with the contents of the file
-
-    """
-    try:
-        # FIXME: we can actually ignore Merge commits altogether.
-        return re.finditer(r'^commit (?P<commit>.*?)$'
-                           '.*?'
-                           '^Author:\s+(?P<author>.*?)$'
-                           '.*?'
-                           '^Date:\s+(?P<date>.*?)$'
-                           '.*?'
-                           '\n\n\s+(?P<message>.*?)$'
-                           '(?:\n\n|\n.*?)',
-                           changelog, re.MULTILINE | re.DOTALL)
-    except AttributeError:
-        sys.exit("Could not parse ChangeLog file.")
-
 
 def get_commit_from_spec(package):
+    """Parse the spec's Version field for a previously set commit version
+
+    :package: name of the package
+
+    Returns None in case no commit could be read.
+
+    """
     try:
         f = open(package + '.spec')
         return re.search(r'^Version:\s+.*\+git\.\d+\.(.*?)(\s+#)?$',
                          f.read(), flags=re.MULTILINE).group(1)
     except AttributeError:
-        sys.exit("Could not parse version from spec file")
+        return None
     finally:
         f.close()
 
 
-def package_version(upstream_version, upstream_commit):
+def package_version(git_compare, upstream_version):
+    try:
+        upstream_commit = git_compare['commits'][-1]
+    except IndexError:
+        upstream_commit = git_compare['base_commit']
+
+    sha = upstream_commit['sha'][:COMMIT_HASH_SIZE]
+
     return '%s+git.%s.%s' % (upstream_version,
                              datetime.now().strftime('%s'),
-                             upstream_commit[:COMMIT_HASH_SIZE])
+                             sha)
 
 
 def update_spec_file(package_version, tarball_parent_dir, filename):
@@ -132,58 +107,37 @@ def update_spec_file(package_version, tarball_parent_dir, filename):
             f.close()
 
 
-def diff_changes(changes_list, package_commit):
-    """Return a list of dict changes newer than the ones in package_version
-    
-    :changes_list: a list of dicts from the ChangeLog file
-    :package_commit: a git commit hash of the current version from the spec file
-
-    Returns an empty list if there are no newer commits.
-
-    """
-    new_changes = []
-    for change in changes_list:
-        change = change.groupdict()
-        if change['commit'].startswith(package_commit):
-            break
-        new_changes.append(change)
-
-    return new_changes
-
-
-def create_changes(changes_list, package_version, package_commit, email):
+def create_changes(git_compare, package_version, email):
     """Return a string with the new changes for the .changes file
 
-    :changes_list: a list of dicts from the ChangeLog file
+    :git_compare: JSON data from github commit compare
     :package_version: release version string for the .changes file entry
-    :package_commit: a git commit hash of the current version from the spec file
     :email: email address used for the .changes file entry
 
     """
-    changes_diff = diff_changes(changes_list, package_commit)
-    if not changes_diff:
-        print "There are no new changes."
-        return
-
     timestamp = datetime.utcnow().strftime('%a %b %e %T UTC %Y')
 
-    # XXX Merge commits should be skipped when parsing the changelog
-    commits = "  + " + "\n  + ".join(c['message'] for c in changes_diff
-                                     if not c['message'].startswith('Merge "'))
+    if git_compare['commits']:
+        commits = "  + " + "\n  + ".join(
+            c['commit']['message'].split('\n')[0] for c in git_compare['commits']
+            if not c['commit']['message'].startswith('Merge '))
+
+        message = ('- Update to version %(package_version)s:\n'
+                   '%(commits)s\n') % locals()
+    else:
+        message = '- Start using obs-service-github_tarballs\n'
+
     change = (
         '--------------------------------------------------------------------\n'
         '%(timestamp)s - %(email)s\n'
-        '\n'
-        '- Update to version %(package_version)s:\n'
-        '%(commits)s\n'
-        '\n' % locals())
+        '\n%(message)s\n' % locals())
 
     return change
 
 
 def update_changes_file(package, changes):
     for changes_file in glob.glob('./*.changes'):
-        try: 
+        try:
             f = open(changes_file, 'r+')
             contents = f.read()
             f.seek(0)
@@ -191,6 +145,30 @@ def update_changes_file(package, changes):
             f.write(contents)
         finally:
             f.close()
+
+
+def get_changes(owner, repo, current_commit, target_commit):
+    """Return a list of new commits from github compare
+
+    See http://developer.github.com/v3/repos/commits/#compare-two-commits
+
+    """
+    url = GITHUB_COMPARE % dict(owner=owner,
+                                repo=repo,
+                                base=current_commit or target_commit,
+                                head=target_commit)
+    try:
+        res = urllib.urlopen(url)
+    except IOError as e:
+        sys.exit(e)
+
+    if res.code != 200:
+        sys.exit("Could not read commits from %s. %s "
+                 % (url, json.loads(res.read())['message']))
+
+    data = json.loads(res.read())
+
+    return data
 
 
 if __name__ == '__main__':
@@ -201,6 +179,12 @@ if __name__ == '__main__':
                         help='where to save the downloaded tarball')
     parser.add_argument('--package',
                         help='the OBS package name')
+    parser.add_argument('--repo_owner',
+                        help='github repository owner')
+    parser.add_argument('--repo_name',
+                        help='github repository name')
+    parser.add_argument('--target',
+                        help='git repository target commit/ref to update to')
     parser.add_argument('--email', required=True,
                         help='email of the commit author (for the .changes file)')
     parser.add_argument('--outdir', help='osc service parameter that does nothing')
@@ -213,15 +197,13 @@ if __name__ == '__main__':
 
     download_tarball(args.url, args.filename)
 
-    changelog = get_changelog_from_tarball(args.filename)
-    changes_list = parse_changelog(changelog)
-    upstream_commit = get_upstream_commit(changelog)
     tarball_parent_dir, upstream_version = get_parent_dir_and_version_from_tarball(args.filename)
 
-    package_commit = get_commit_from_spec(args.package)
-    package_version = package_version(upstream_version, upstream_commit)
-    changes = create_changes(changes_list, package_version, package_commit, args.email)
+    current_commit = get_commit_from_spec(args.package)
+    git_compare = get_changes(args.repo_owner, args.repo_name,
+                              current_commit, args.target)
+    current_version = package_version(git_compare, upstream_version)
 
-    if changes:
-        update_changes_file(args.package, changes)
-    update_spec_file(package_version, tarball_parent_dir, args.filename)
+    changes = create_changes(git_compare, current_version, args.email)
+    update_changes_file(args.package, changes)
+    update_spec_file(current_version, tarball_parent_dir, args.filename)
