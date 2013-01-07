@@ -6,7 +6,7 @@ This is an `Open Build Service`_ source service. It downloads a tarball
 from a remote URL and updates the ``.spec`` and ``.changes`` files with
 git commit information from the `github API`_.
 
-The ``Version`` field will be set to %(tarball_version)s+git.%(timestamp)s.%(commit_sha)s. Where ``tarball_version`` is the version as read from the parent directory inside the downloaded tarball - everything after the last dash (``-``) in the directory's name. ``timestamp`` is the current seconds from the UNIX epoch when the source service was run. ``commit_sha`` is the latest commit sha hash from the git repository.
+The ``Version`` field will be set to ``%(tarball_version)s+git.%(timestamp)s.%(commit_sha)s``. Where ``tarball_version`` is the version as read from the parent directory inside the downloaded tarball - everything after the last dash (``-``) in the directory's name. ``timestamp`` is the current seconds from the UNIX epoch when the source service was run. ``commit_sha`` is the latest commit sha hash from the git repository.
 
 On the first run, ``github_tarballs`` will just set the spec file's
 ``Version`` field to the latest git commit. The .changes file will only
