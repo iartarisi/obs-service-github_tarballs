@@ -1,6 +1,6 @@
-=========================================
- OBS service for downloading git tarballs
-=========================================
+========================================================================
+ OBS service for downloading tarballs and commit information from github
+========================================================================
 
 This is an `Open Build Service`_ source service. It downloads a tarball
 from a remote URL and updates the ``.spec`` and ``.changes`` files with
