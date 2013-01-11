@@ -119,7 +119,8 @@ def create_changes(git_compare, package_version, email):
 
     if git_compare['commits']:
         commits = "  + " + "\n  + ".join(
-            c['commit']['message'].split('\n')[0] for c in git_compare['commits']
+            c['commit']['message'].split('\n')[0]
+            for c in git_compare['commits']
             if not c['commit']['message'].startswith('Merge '))
 
         message = ('- Update to version %(package_version)s:\n'
@@ -186,8 +187,9 @@ if __name__ == '__main__':
     parser.add_argument('--target',
                         help='git repository target commit/ref to update to')
     parser.add_argument('--email', required=True,
-                        help='email of the commit author (for the .changes file)')
-    parser.add_argument('--outdir', help='osc service parameter that does nothing')
+                        help="commit author's email (for the .changes file)")
+    parser.add_argument('--outdir',
+                        help='osc service parameter that does nothing')
     args = parser.parse_args()
 
     if not args.filename:
