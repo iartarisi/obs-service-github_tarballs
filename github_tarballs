@@ -65,7 +65,7 @@ def get_commit_from_spec(package):
     """
     try:
         f = open(package + '.spec')
-        return re.search(r'^Version:\s+.*\+git\.\d+\.(.*?)(\s+#)?$',
+        return re.search(r'^Version:\s+.*\+git\.\d+\.(.*?)(\s+#.*)?$',
                          f.read(), flags=re.MULTILINE).group(1)
     except AttributeError:
         return None
