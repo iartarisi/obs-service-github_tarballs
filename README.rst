@@ -21,6 +21,9 @@ Requires argparse which is part of python2.7, but available as a
 third-party dependency in python2.6.
 
 
+The tests require `python-mock`_. To run them, just use ``nosetests`` or ``python -m unittest discover`` (on python2.7).
+
+
 TODO:
 
 * use current user's email address in .changes file
@@ -29,3 +32,4 @@ TODO:
 
 .. _Open Build Service: http://openbuildservice.org/
 .. _github API: http://api.github.com/
+.. _python-mock: http://www.voidspace.org.uk/python/mock/mock.html
