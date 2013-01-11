@@ -17,17 +17,13 @@ The ``github_tarballs`` service will also change the specfile's
 ``Source:`` to the ``filename`` argument of the service and the ``%setup
 -q`` line to match the parent folder name in the tarball.
 
+Dependencies
+------------
+
 Requires argparse which is part of python2.7, but available as a
 third-party dependency in python2.6.
 
-
 The tests require `python-mock`_. To run them, just use ``nosetests`` or ``python -m unittest discover`` (on python2.7).
-
-
-TODO:
-
-* use current user's email address in .changes file
-* tests
 
 
 .. _Open Build Service: http://openbuildservice.org/
