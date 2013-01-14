@@ -152,6 +152,18 @@ def get_changes(package, owner, repo, target):
 
     See http://developer.github.com/v3/repos/commits/#compare-two-commits
 
+    The dict contains:
+    {
+     "commits": [{
+         "url": ...,
+         "commit": {
+             "message": ...,
+             ...
+         },
+         ...
+     }, ...]
+    }
+
     """
     current_commit = get_commit_from_spec(package)
     url = GITHUB_COMPARE % dict(owner=owner,
