@@ -35,6 +35,14 @@ class TestGitHubTarballs(unittest.TestCase):
             self.assertEqual('0c8c2a3',
                              ghb.get_commit_from_spec('example_pkg'))
 
+    def test_download_tarball(self):
+        with mock.patch("urllib.urlretrieve") as urlretrieve:
+            ghb.download_tarball('owner', 'repo', 'target', 'filename')
+            self.assertEqual(
+                (("https://github.com/owner/repo/archive/target.tar.gz",
+                  "filename"),),
+                urlretrieve.call_args)
+
 
 @contextmanager
 def mock_open(contents):

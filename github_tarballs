@@ -26,16 +26,20 @@ import urllib
 
 
 COMMIT_HASH_SIZE = 7
+GITHUB_TAR = "https://github.com/%(owner)s/%(repo)s/archive/%(target)s.tar.gz"
 GITHUB_COMPARE = "https://api.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
 
 
-def download_tarball(url, filename):
+def download_tarball(owner, repo, target, filename):
     """Download an upstream tarball
 
-    :url: remote source of the tarball
-    :filename: where to save the downloaded tarball
+    :owner: github repository owner (user or organization)
+    :repo: github repository name
+    :target: commit or git ref
+    :filename: filename to save the tarball to
 
     """
+    url = GITHUB_TAR % locals()
     try:
         urllib.urlretrieve(url, filename)
     except IOError as e:
@@ -193,11 +197,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.filename:
-        args.filename = args.url.rsplit("/", 1)[1]
+        args.filename = args.repo_name + ".tar.gz"
     if not args.package:
         args.package = os.getcwd().rsplit("/", 1)[1]
 
-    download_tarball(args.url, args.filename)
+    download_tarball(args.repo_owner, args.repo_name, args.target)
 
     tarball_parent_dir, upstream_version = get_parent_dir_and_version_from_tarball(args.filename)
 
