@@ -137,15 +137,14 @@ def create_changes(git_compare, package_version, email):
 
 
 def update_changes_file(package, changes):
-    for changes_file in glob.glob('./*.changes'):
-        try:
-            f = open(changes_file, 'r+')
-            contents = f.read()
-            f.seek(0)
-            f.write(changes)
-            f.write(contents)
-        finally:
-            f.close()
+    try:
+        f = open(package + ".changes", "r+")
+        contents = f.read()
+        f.seek(0)
+        f.write(changes)
+        f.write(contents)
+    finally:
+        f.close()
 
 
 def get_changes(owner, repo, current_commit, target_commit):
