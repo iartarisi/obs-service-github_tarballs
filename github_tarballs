@@ -153,9 +153,21 @@ def update_changes_file(package, changes):
 
 
 def get_changes(owner, repo, current_commit, target_commit):
-    """Return a list of new commits from github compare
+    """Return a dict of new commits from github compare
 
     See http://developer.github.com/v3/repos/commits/#compare-two-commits
+
+    The dict contains:
+    {
+     "commits": [{
+         "url": ...,
+         "commit": {
+             "message": ...,
+             ...
+         },
+         ...
+     }, ...]
+    }
 
     """
     url = GITHUB_COMPARE % dict(owner=owner,
