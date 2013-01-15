@@ -26,9 +26,23 @@ import urllib
 
 
 COMMIT_HASH_SIZE = 7
-GITHUB_TAR = "https://github.com/%(owner)s/%(repo)s/archive/%(target)s.tar.gz"
+GITHUB_BRANCHES = "https://api.github.com/repos/%(owner)s/%(repo)s/branches/%(target)s"
 GITHUB_COMPARE = "https://api.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
+GITHUB_TAGS = "https://api.github.com/repos/%(owner)s/%(repo)s/git/refs/tags/"
+GITHUB_TAG = "https://api.github.com/repos/%(owner)s/%(repo)s/git/tags/%(tag)s"
+GITHUB_TAR = "https://github.com/%(owner)s/%(repo)s/archive/%(target)s.tar.gz"
 
+
+def github(url, errors=True):
+    """Connect to github's API and return a urllib response object"""
+    try:
+        res = urllib.urlopen(url)
+    except IOError as e:
+        if errors:
+            sys.exit(e)
+        return None
+    return res
+        
 
 def download_tarball(owner, repo, target, filename):
     """Download an upstream tarball
@@ -76,6 +90,49 @@ def get_commit_from_spec(package):
     finally:
         f.close()
 
+def get_target_sha(owner, repo, target):
+    url = GITHUB_BRANCHES % locals()
+    tag = json.loads(github(url).read())
+    return tag['commit']['sha']
+
+def get_upstream_version(owner, repo, target):
+    url = GITHUB_TAGS % locals()
+    res = github(url)
+    if res.code != 200:
+        sys.exit("Could not read commits from %s. %s "
+                 % (url, json.loads(res.read())['message']))
+
+    tags = json.loads(res.read())
+    tags.reverse()
+    # we now have the list of tags in descending cronological order, but
+    # we don't know what branch they're on. So we're going to compare
+    # commits and look if the branches have diverged. We're looking for
+    # the 'behind' status because that means that the branch comes
+    # before the tag commit
+    branch_sha = get_target_sha(owner, repo, target)
+    
+    for tag in tags:
+        tag_url = tag['object']['url']
+        tag = json.loads(github(tag_url).read())
+
+        url = GITHUB_COMPARE % dict(base=branch_sha,
+                                    head=tag['object']['sha'], **locals())
+        res = github(url, errors=False)
+        if not res:
+            print 'ooooo: ', url
+            # no path found from branch to tag, the tag must be on a
+            # different branch
+            continue
+
+        # the result can be huge, but the status should be at the beginning
+        while True:
+            header = res.read(1024)
+            if '"status"' in header:
+                status = re.search(r'"status":"(\w+)"', header).groups()[0]
+                break
+
+        if status == 'behind':
+            return tag['tag']
 
 def package_version(git_compare, upstream_version):
     try:
