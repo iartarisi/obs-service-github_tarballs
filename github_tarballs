@@ -147,16 +147,17 @@ def update_changes_file(package, changes):
         f.close()
 
 
-def get_changes(owner, repo, current_commit, target_commit):
-    """Return a list of new commits from github compare
+def get_changes(package, owner, repo, target):
+    """Return a dict of new commits from github compare
 
     See http://developer.github.com/v3/repos/commits/#compare-two-commits
 
     """
+    current_commit = get_commit_from_spec(package)
     url = GITHUB_COMPARE % dict(owner=owner,
                                 repo=repo,
-                                base=current_commit or target_commit,
-                                head=target_commit)
+                                base=current_commit or target,
+                                head=target)
     try:
         res = urllib.urlopen(url)
     except IOError as e:
@@ -200,9 +201,8 @@ if __name__ == '__main__':
 
     tarball_parent_dir, upstream_version = get_parent_dir_and_version_from_tarball(args.filename)
 
-    current_commit = get_commit_from_spec(args.package)
-    git_compare = get_changes(args.repo_owner, args.repo_name,
-                              current_commit, args.target)
+    git_compare = get_changes(args.package, args.repo_owner,
+                              args.repo_name, args.target)
     current_version = package_version(git_compare, upstream_version)
 
     changes = create_changes(git_compare, current_version, args.email)
