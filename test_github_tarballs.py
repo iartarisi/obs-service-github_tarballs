@@ -19,7 +19,7 @@ import unittest
 
 import mock
 
-ghb = imp.load_source('github_tarballs', 'github_tarballs')
+ghb = imp.load_source('ghb', 'github_tarballs')
 
 
 class TestGitHubTarballs(unittest.TestCase):
@@ -43,7 +43,19 @@ class TestGitHubTarballs(unittest.TestCase):
                   "filename"),),
                 urlretrieve.call_args)
 
+    def test_get_changes(self):
+        response = io.StringIO(u'{"commits": [1, 2, 3]}')
+        response.code = 200
+        with mock.patch("ghb.get_commit_from_spec", return_value="1234"):
+            with mock.patch("urllib.urlopen", return_value=response) as urlopen:
+                self.assertEqual({'commits': [1, 2, 3]},
+                                 ghb.get_changes("package", "owner", "repo",
+                                                 "target"))
+                self.assertEqual(
+                    (("https://api.github.com/repos/owner/repo/compare/1234...target",),),
+                    urlopen.call_args)
 
+                
 @contextmanager
 def mock_open(contents):
     with mock.patch("__builtin__.open", return_value=io.StringIO(contents)):
