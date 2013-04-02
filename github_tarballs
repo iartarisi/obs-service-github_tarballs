@@ -25,8 +25,16 @@ import tarfile
 import urllib
 
 
+GITHUB_CREDS = ""
+conffilebase = "github_tarballs_credentials"
+try:
+    f = open(os.path.join(os.path.expanduser('~'), '.' + conffilebase))
+    GITHUB_CREDS = f.read().rstrip('\n') + '@'
+except IOError:
+    pass
+
 COMMIT_HASH_SIZE = 7
-GITHUB_COMPARE = "https://api.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
+GITHUB_COMPARE = "https://%(creds)sapi.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
 
 
 def download_tarball(url, filename):
@@ -168,6 +176,7 @@ def get_changes(package, owner, repo, target):
     current_commit = get_commit_from_spec(package)
     url = GITHUB_COMPARE % dict(owner=owner,
                                 repo=repo,
+                                creds=GITHUB_CREDS,
                                 base=current_commit or target,
                                 head=target)
     try:
