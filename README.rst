@@ -6,6 +6,9 @@ This is an `Open Build Service`_ source service. It downloads a tarball
 from a remote URL and updates the ``.spec`` and ``.changes`` files with
 git commit information from the `github API`_.
 
+How It Works
+------------
+
 The ``Version`` field will be set to ``%(tarball_version)s+git.%(timestamp)s.%(commit_sha)s``. Where ``tarball_version`` is the version as read from the parent directory inside the downloaded tarball - everything after the last dash (``-``) in the directory's name. ``timestamp`` is the current seconds from the UNIX epoch when the source service was run. ``commit_sha`` is the latest commit sha hash from the git repository.
 
 On the first run, ``github_tarballs`` will just set the spec file's
@@ -16,6 +19,11 @@ to the one now set in ``Version``) are found.
 The ``github_tarballs`` service will also change the specfile's
 ``Source:`` to the ``filename`` argument of the service and the ``%setup
 -q`` line to match the parent folder name in the tarball.
+
+Rate Limiting
+-------------
+
+The github API rate limits requests. The limit can be extended by using github credentials to access the API. ``obs-service-github_tarballs`` will read and use these credentials from the ``.github_tarballs_credentials`` file in the current user's home directory if it can. The file should contain one line with the standard in standard HTTP BasicAuth format ``username:password``.
 
 Dependencies
 ------------

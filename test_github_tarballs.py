@@ -12,13 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nested
 import imp
 import io
 import unittest
 
-import mock
+from mock import patch
 
+GITHUB_API = "https://api.github.com"
 ghb = imp.load_source('ghb', 'github_tarballs')
 
 
@@ -36,27 +37,42 @@ class TestGitHubTarballs(unittest.TestCase):
                              ghb.get_commit_from_spec('example_pkg'))
 
     def test_download_tarball(self):
-        with mock.patch("urllib.urlretrieve") as urlretrieve:
-            ghb.download_tarball('owner', 'repo', 'target', 'filename')
+        with patch("urllib.urlretrieve") as urlretrieve:
+            ghb.download_tarball('https://example.com/target.tar.gz',
+                                 'filename')
             self.assertEqual(
-                (("https://github.com/owner/repo/archive/target.tar.gz",
+                (("https://example.com/target.tar.gz",
                   "filename"),),
                 urlretrieve.call_args)
 
     def test_get_changes(self):
         response = io.StringIO(u'{"commits": [1, 2, 3]}')
         response.code = 200
-        with mock.patch("ghb.get_commit_from_spec", return_value="1234"):
-            with mock.patch("urllib.urlopen", return_value=response) as urlopen:
-                self.assertEqual({'commits': [1, 2, 3]},
-                                 ghb.get_changes("package", "owner", "repo",
-                                                 "target"))
-                self.assertEqual(
-                    (("https://api.github.com/repos/owner/repo/compare/1234...target",),),
-                    urlopen.call_args)
+        with nested(patch("ghb.get_commit_from_spec", return_value="1234"),
+                    patch("ghb.github_credentials", return_value=""),
+                    patch("urllib.urlopen", return_value=response)
+                    ) as (_, _, urlopen):
+            self.assertEqual({'commits': [1, 2, 3]},
+                             ghb.get_changes("package", "owner", "repo",
+                                             "target"))
+            self.assertEqual(
+                ((GITHUB_API + "/repos/owner/repo/compare/1234...target",),),
+                urlopen.call_args)
 
-                
+    def test_github_credentials_empty_file(self):
+        with mock_open(u""):
+            self.assertEqual("", ghb.github_credentials())
+
+    def test_github_credentials_ioerror(self):
+        with patch("__builtin__.open", side_effect=IOError):
+            self.assertEqual("", ghb.github_credentials())
+
+    def test_github_credentials_read_from_file(self):
+        with mock_open(u"user:pass"):
+            self.assertEqual("user:pass", ghb.github_credentials())
+
+
 @contextmanager
 def mock_open(contents):
-    with mock.patch("__builtin__.open", return_value=io.StringIO(contents)):
+    with patch("__builtin__.open", return_value=io.StringIO(contents)):
         yield
