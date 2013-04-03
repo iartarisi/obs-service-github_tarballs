@@ -33,6 +33,13 @@ third-party dependency in python2.6.
 
 The tests require `python-mock`_. To run them, just use ``nosetests`` or ``python -m unittest discover`` (on python2.7).
 
+Contributing
+------------
+
+You can submit or ask for improvements using github's Pull Requests or Issues. If you're sending a patch, please make sure the testsuite is still running and also run flake8 on the files you've modified. It would be great if you could also modify this README file to describe new functionality and add tests.
+
+You can take a look at the .travis.yml file to see how the testsuite and flake8 are being run.
+
 
 .. _Open Build Service: http://openbuildservice.org/
 .. _github API: http://api.github.com/
