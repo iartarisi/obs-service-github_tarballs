@@ -2,6 +2,9 @@
  OBS service for downloading tarballs and commit information from github
 ========================================================================
 
+.. image:: https://travis-ci.org/mapleoin/obs-service-github_tarballs.png
+   :target: https://travis-ci.org/mapleoin/obs-service-github_tarballs
+
 This is an `Open Build Service`_ source service. It downloads a tarball
 from a remote URL and updates the ``.spec`` and ``.changes`` files with
 git commit information from the `github API`_.
