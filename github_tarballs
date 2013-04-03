@@ -27,7 +27,8 @@ import urllib
 
 GITHUB_CREDS = ".github_tarballs_credentials"
 COMMIT_HASH_SIZE = 7
-GITHUB_COMPARE = "https://%(creds)sapi.github.com/repos/%(owner)s/%(repo)s/compare/%(base)s...%(head)s"
+GITHUB_COMPARE = ("https://%(creds)sapi.github.com/repos/"
+                  "%(owner)s/%(repo)s/compare/%(base)s...%(head)s")
 
 
 def github_credentials():
@@ -144,7 +145,8 @@ def create_changes(git_compare, package_version, email):
         message = '- Start using obs-service-github_tarballs\n'
 
     change = (
-        '--------------------------------------------------------------------\n'
+        '-----------------------------------'
+        '---------------------------------\n'
         '%(timestamp)s - %(email)s\n'
         '\n%(message)s\n' % locals())
 
@@ -227,7 +229,8 @@ if __name__ == '__main__':
 
     download_tarball(args.url, args.filename)
 
-    tarball_parent_dir, upstream_version = get_parent_dir_and_version_from_tarball(args.filename)
+    tarball_parent_dir, upstream_version = \
+        get_parent_dir_and_version_from_tarball(args.filename)
 
     git_compare = get_changes(args.package, args.repo_owner,
                               args.repo_name, args.target)
