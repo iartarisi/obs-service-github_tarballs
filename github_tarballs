@@ -133,16 +133,16 @@ def create_changes(git_compare, package_version, email):
     """
     timestamp = datetime.utcnow().strftime('%a %b %e %T UTC %Y')
 
-    if git_compare['commits']:
-        commits = "  + " + "\n  + ".join(
-            c['commit']['message'].split('\n')[0]
-            for c in git_compare['commits']
-            if not c['commit']['message'].startswith('Merge '))
+    if not git_compare['commits']:
+        return None
 
-        message = ('- Update to version %(package_version)s:\n'
-                   '%(commits)s\n') % locals()
-    else:
-        message = '- Start using obs-service-github_tarballs\n'
+    commits = "  + " + "\n  + ".join(
+        c['commit']['message'].split('\n')[0]
+        for c in git_compare['commits']
+        if not c['commit']['message'].startswith('Merge '))
+
+    message = ('- Update to version %(package_version)s:\n'
+               '%(commits)s\n') % locals()
 
     change = (
         '-----------------------------------'
@@ -237,5 +237,6 @@ if __name__ == '__main__':
     current_version = package_version(git_compare, upstream_version)
 
     changes = create_changes(git_compare, current_version, args.email)
-    update_changes_file(args.package, changes)
-    update_spec_file(current_version, tarball_parent_dir, args.filename)
+    if changes:
+        update_changes_file(args.package, changes)
+        update_spec_file(current_version, tarball_parent_dir, args.filename)
