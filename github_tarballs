@@ -40,6 +40,8 @@ def github_credentials():
     try:
         with open(os.path.join(os.path.expanduser('~'), GITHUB_CREDS)) as f:
             creds = f.read().rstrip()
+            if creds:
+                creds += "@"
     except IOError:
         pass
     return creds
