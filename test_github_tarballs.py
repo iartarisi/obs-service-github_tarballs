@@ -69,7 +69,7 @@ class TestGitHubTarballs(unittest.TestCase):
 
     def test_github_credentials_read_from_file(self):
         with mock_open(u"user:pass"):
-            self.assertEqual("user:pass", ghb.github_credentials())
+            self.assertEqual("user:pass@", ghb.github_credentials())
 
 
 @contextmanager
